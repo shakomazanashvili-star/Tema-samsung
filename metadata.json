@@ -1,0 +1,6 @@
+{
+  "name": "Aesthetic S24",
+  "description": "9 Aesthetic lockscreen & homescreen wallpaper sets, interactive widgets, and One UI tutorial for Samsung Galaxy S24 Ultra",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
