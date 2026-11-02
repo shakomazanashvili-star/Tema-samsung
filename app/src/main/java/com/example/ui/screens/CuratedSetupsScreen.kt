@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FormatPaint
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -66,6 +68,8 @@ import com.example.ui.theme.S24TitaniumBlack
 @Composable
 fun CuratedSetupsScreen(
     language: AppLanguage,
+    favoriteIds: Set<String> = emptySet(),
+    onToggleFavorite: ((ThemeItem, LockScreenConfig) -> Unit)? = null,
     onSelectSetupForCustomizer: (ThemeItem, LockScreenConfig) -> Unit,
     onQuickApplySetup: (ThemeItem, LockScreenConfig) -> Unit,
     modifier: Modifier = Modifier
@@ -218,6 +222,8 @@ fun CuratedSetupsScreen(
             CuratedSetupCard(
                 setup = setup,
                 language = language,
+                isFavorite = favoriteIds.contains(setup.theme.id),
+                onToggleFavorite = { onToggleFavorite?.invoke(setup.theme, setup.config) },
                 onCustomize = { onSelectSetupForCustomizer(setup.theme, setup.config) },
                 onApply = { onQuickApplySetup(setup.theme, setup.config) }
             )
@@ -229,6 +235,8 @@ fun CuratedSetupsScreen(
 private fun CuratedSetupCard(
     setup: CuratedSetup,
     language: AppLanguage,
+    isFavorite: Boolean = false,
+    onToggleFavorite: (() -> Unit)? = null,
     onCustomize: () -> Unit,
     onApply: () -> Unit
 ) {
@@ -241,7 +249,7 @@ private fun CuratedSetupCard(
         border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(S24BorderDark, S24BorderDark)))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header
+            // Header with Quick Access Toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -260,6 +268,37 @@ private fun CuratedSetupCard(
                         fontSize = 12.sp,
                         lineHeight = 16.sp
                     )
+                }
+
+                if (onToggleFavorite != null) {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isFavorite) AestheticAccent.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.08f))
+                            .border(1.dp, if (isFavorite) AestheticAccent else S24BorderDark, RoundedCornerShape(12.dp))
+                            .clickable { onToggleFavorite() }
+                            .testTag("toggle_favorite_curated_${setup.id}")
+                            .padding(horizontal = 8.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Save to Quick Access",
+                            tint = if (isFavorite) AestheticAccent else S24TextMuted,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (isFavorite) {
+                                if (language == AppLanguage.GEORGIAN) "რჩეული" else "Saved"
+                            } else {
+                                if (language == AppLanguage.GEORGIAN) "შენახვა" else "Save"
+                            },
+                            color = if (isFavorite) AestheticAccent else S24TextSecondary,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_clock_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_glass_bg"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Top Subtitle: S24 Ultra & Date -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextClock
+            android:id="@+id/widget_clock_date"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:format12Hour="EEEE, MMM d"
+            android:format24Hour="EEEE, MMM d"
+            android:textColor="#B3FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_clock_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="#336C5CE7"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
+            android:text="S24 ULTRA"
+            android:textColor="#FF6C5CE7"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Main Live Time Clock -->
+    <TextClock
+        android:id="@+id/widget_clock_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:fontFamily="serif"
+        android:format12Hour="h:mm"
+        android:format24Hour="HH:mm"
+        android:includeFontPadding="false"
+        android:textColor="#FFFFFFFF"
+        android:textSize="44sp"
+        android:textStyle="bold" />
+
+    <!-- Bottom aesthetic pill / quote -->
+    <TextView
+        android:id="@+id/widget_clock_footer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="One UI 6.1 • Aesthetic Design"
+        android:textColor="#80FFFFFF"
+        android:textSize="11sp" />
+
+</LinearLayout>

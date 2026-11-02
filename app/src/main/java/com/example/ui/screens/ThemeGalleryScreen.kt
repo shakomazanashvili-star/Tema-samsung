@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -26,13 +27,22 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.example.data.FavoriteWallpaperSetEntity
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -52,6 +62,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.AppLanguage
@@ -74,6 +85,7 @@ import com.example.ui.theme.S24TitaniumBlack
 fun ThemeGalleryScreen(
     language: AppLanguage,
     favoriteIds: Set<String>,
+    quickAccessWallpapers: List<FavoriteWallpaperSetEntity> = emptyList(),
     onToggleBookmark: (ThemeItem) -> Unit,
     onSelectThemeForCustomizer: (ThemeItem) -> Unit,
     onQuickApplyTheme: (ThemeItem) -> Unit,
@@ -81,13 +93,49 @@ fun ThemeGalleryScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedCategory by remember { mutableStateOf(ThemeCategory.ALL) }
+    var searchQuery by remember { mutableStateOf("") }
+    var activeGeminiTag by remember { mutableStateOf<String?>(null) }
 
-    val filteredThemes = remember(selectedCategory, favoriteIds) {
-        when (selectedCategory) {
+    val popularGeminiTags = remember {
+        listOf(
+            "Minimal",
+            "Neon",
+            "Cyberpunk",
+            "OLED",
+            "Cozy",
+            "Sunset",
+            "Architecture",
+            "Forest",
+            "Quantum"
+        )
+    }
+
+    val filteredThemes = remember(selectedCategory, favoriteIds, searchQuery, activeGeminiTag) {
+        var list = when (selectedCategory) {
             ThemeCategory.ALL -> ThemeRepository.themes
             ThemeCategory.FAVORITES -> ThemeRepository.themes.filter { favoriteIds.contains(it.id) }
             else -> ThemeRepository.themes.filter { it.category == selectedCategory }
         }
+
+        val trimmed = searchQuery.trim().lowercase()
+        if (trimmed.isNotEmpty()) {
+            list = list.filter { theme ->
+                val matchesTag = theme.tags.any { it.lowercase().contains(trimmed) }
+                val matchesTitle = theme.titleEn.lowercase().contains(trimmed) || theme.titleGe.lowercase().contains(trimmed)
+                val matchesSubtitle = theme.subtitleEn.lowercase().contains(trimmed) || theme.subtitleGe.lowercase().contains(trimmed)
+                val matchesCategory = theme.category.name.lowercase().contains(trimmed)
+                matchesTag || matchesTitle || matchesSubtitle || matchesCategory
+            }
+        }
+
+        if (activeGeminiTag != null) {
+            val tagLower = activeGeminiTag!!.lowercase()
+            list = list.filter { theme ->
+                theme.tags.any { it.lowercase().contains(tagLower) }
+            }
+        }
+
+        list
     }
 
     LazyColumn(
@@ -104,6 +152,156 @@ fun ThemeGalleryScreen(
             )
         }
 
+        // Search Bar at Top of Wallpaper Gallery
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp, bottom = 8.dp)
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = {
+                        searchQuery = it
+                        if (activeGeminiTag != null && it != activeGeminiTag) {
+                            activeGeminiTag = null
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .testTag("wallpaper_search_bar"),
+                    placeholder = {
+                        Text(
+                            text = if (language == AppLanguage.GEORGIAN)
+                                "მოძებნეთ Gemini ტეგებით (მაგ: Minimal, Neon, OLED)..."
+                            else
+                                "Search by Gemini tags (e.g. Minimal, Neon, OLED)...",
+                            fontSize = 12.sp,
+                            color = S24TextMuted
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = AestheticAccent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(
+                                onClick = {
+                                    searchQuery = ""
+                                    activeGeminiTag = null
+                                },
+                                modifier = Modifier.testTag("clear_search_query_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Clear",
+                                    tint = S24TextSecondary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = S24CardDark,
+                        unfocusedContainerColor = S24CardDark,
+                        focusedBorderColor = AestheticAccent,
+                        unfocusedBorderColor = S24BorderDark,
+                        focusedTextColor = S24TextPrimary,
+                        unfocusedTextColor = S24TextPrimary,
+                        cursorColor = AestheticAccent
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Gemini Quick Tag Chips Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = AestheticAccent,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (language == AppLanguage.GEORGIAN) "ტეგები:" else "AI Tags:",
+                            color = AestheticAccent,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(popularGeminiTags) { tag ->
+                            val isSelected = (activeGeminiTag.equals(tag, ignoreCase = true)) ||
+                                    (searchQuery.equals(tag, ignoreCase = true))
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    if (isSelected) {
+                                        searchQuery = ""
+                                        activeGeminiTag = null
+                                    } else {
+                                        searchQuery = tag
+                                        activeGeminiTag = tag
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        text = "#$tag",
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = AestheticAccent,
+                                    selectedLabelColor = Color.Black,
+                                    containerColor = Color.White.copy(alpha = 0.06f),
+                                    labelColor = S24TextSecondary
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = if (isSelected) AestheticAccent else S24BorderDark
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.testTag("gemini_tag_chip_${tag.lowercase()}")
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Quick Access Carousel Tray if favorites exist
+        if (quickAccessWallpapers.isNotEmpty()) {
+            item {
+                QuickAccessTray(
+                    wallpapers = quickAccessWallpapers,
+                    language = language,
+                    onSelectTheme = onSelectThemeForCustomizer,
+                    onQuickApply = onQuickApplyTheme
+                )
+            }
+        }
+
         // Category Filter Chips
         item {
             CategoryChipsRow(
@@ -114,16 +312,120 @@ fun ThemeGalleryScreen(
             )
         }
 
-        // Themes List
-        items(filteredThemes, key = { it.id }) { theme ->
-            ThemeCard(
-                theme = theme,
-                language = language,
-                isBookmarked = favoriteIds.contains(theme.id),
-                onToggleBookmark = { onToggleBookmark(theme) },
-                onCustomize = { onSelectThemeForCustomizer(theme) },
-                onApply = { onQuickApplyTheme(theme) }
-            )
+        // Search Query Indicator / Results Counter
+        if (searchQuery.isNotEmpty() || activeGeminiTag != null) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (language == AppLanguage.GEORGIAN)
+                            "ნაპოვნია ${filteredThemes.size} ნაკრები ტეგით '${searchQuery.ifEmpty { activeGeminiTag ?: "" }}'"
+                        else
+                            "Found ${filteredThemes.size} sets for '${searchQuery.ifEmpty { activeGeminiTag ?: "" }}'",
+                        color = S24TextSecondary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Text(
+                        text = if (language == AppLanguage.GEORGIAN) "გასუფთავება" else "Clear",
+                        color = AestheticAccent,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clickable {
+                                searchQuery = ""
+                                activeGeminiTag = null
+                            }
+                            .padding(4.dp)
+                    )
+                }
+            }
+        }
+
+        // Empty Search Results State
+        if (filteredThemes.isEmpty() && (searchQuery.isNotEmpty() || activeGeminiTag != null)) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.08f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null,
+                                tint = S24TextMuted,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        Text(
+                            text = if (language == AppLanguage.GEORGIAN)
+                                "ტეგით '$searchQuery' ფონები ვერ მოიძებნა"
+                            else
+                                "No wallpapers matching '$searchQuery'",
+                            color = S24TextPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (language == AppLanguage.GEORGIAN)
+                                "სცადეთ სხვა Gemini ტეგები, როგორიცაა Minimal, Neon, OLED, ან Architecture"
+                            else
+                                "Try popular Gemini tags like Minimal, Neon, OLED, or Architecture",
+                            color = S24TextSecondary,
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center
+                        )
+                        Button(
+                            onClick = {
+                                searchQuery = ""
+                                activeGeminiTag = null
+                            },
+                            modifier = Modifier.testTag("clear_search_button"),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AestheticAccent,
+                                contentColor = Color.Black
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = if (language == AppLanguage.GEORGIAN) "ძებნის გასუფთავება" else "Clear Filter",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            // Themes List
+            items(filteredThemes, key = { it.id }) { theme ->
+                ThemeCard(
+                    theme = theme,
+                    language = language,
+                    isBookmarked = favoriteIds.contains(theme.id),
+                    onToggleBookmark = { onToggleBookmark(theme) },
+                    onCustomize = { onSelectThemeForCustomizer(theme) },
+                    onApply = { onQuickApplyTheme(theme) }
+                )
+            }
         }
     }
 }
@@ -348,7 +650,7 @@ private fun ThemeCard(
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = if (language == AppLanguage.GEORGIAN) theme.titleGe else theme.titleEn,
@@ -357,15 +659,34 @@ private fun ThemeCard(
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.weight(1f)
                             )
-                            IconButton(
-                                onClick = onToggleBookmark,
-                                modifier = Modifier.size(28.dp)
+
+                            // Dedicated Quick Access UI Toggle Pill
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isBookmarked) AestheticAccent.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.08f))
+                                    .border(1.dp, if (isBookmarked) AestheticAccent else S24BorderDark, RoundedCornerShape(12.dp))
+                                    .clickable { onToggleBookmark() }
+                                    .testTag("wallpaper_quick_access_toggle_${theme.id}")
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                                    contentDescription = "Bookmark",
+                                    imageVector = if (isBookmarked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = "Save to Quick Access",
                                     tint = if (isBookmarked) AestheticAccent else S24TextMuted,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isBookmarked) {
+                                        if (language == AppLanguage.GEORGIAN) "რჩეული" else "Saved"
+                                    } else {
+                                        if (language == AppLanguage.GEORGIAN) "შენახვა" else "Save"
+                                    },
+                                    color = if (isBookmarked) AestheticAccent else S24TextSecondary,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
@@ -454,6 +775,120 @@ private fun ThemeCard(
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickAccessTray(
+    wallpapers: List<FavoriteWallpaperSetEntity>,
+    language: AppLanguage,
+    onSelectTheme: (ThemeItem) -> Unit,
+    onQuickApply: (ThemeItem) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = null,
+                    tint = AestheticAccent,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (language == AppLanguage.GEORGIAN) "სწრაფი წვდომის ფონები" else "Quick Access Wallpapers",
+                    color = S24TextPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Text(
+                text = "${wallpapers.size} ${if (language == AppLanguage.GEORGIAN) "შენახული" else "saved"}",
+                color = AestheticAccent,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(wallpapers, key = { it.id }) { item ->
+                val theme = ThemeRepository.themes.find { it.id == item.id } ?: ThemeRepository.themes.first()
+                Box(
+                    modifier = Modifier
+                        .width(130.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(S24CardDark)
+                        .border(1.dp, AestheticAccent.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                        .clickable { onSelectTheme(theme) }
+                        .padding(10.dp)
+                ) {
+                    Column {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(95.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                        ) {
+                            Image(
+                                painter = painterResource(id = theme.imageRes ?: com.example.R.drawable.img_theme_titanium),
+                                contentDescription = theme.titleEn,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.6f))
+                                    .padding(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Favorite,
+                                    contentDescription = "Quick Access",
+                                    tint = AestheticAccent,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = if (language == AppLanguage.GEORGIAN) theme.titleGe else theme.titleEn,
+                            color = S24TextPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = if (language == AppLanguage.GEORGIAN) "სწრაფი დაყენება" else "Quick Apply",
+                            color = AestheticAccent,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier
+                                .clickable { onQuickApply(theme) }
+                                .padding(top = 2.dp)
+                        )
                     }
                 }
             }

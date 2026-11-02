@@ -1,5 +1,8 @@
 package com.example.model
 
+import androidx.annotation.DrawableRes
+import com.example.R
+
 data class TutorialStep(
     val id: Int,
     val titleGe: String,
@@ -10,7 +13,9 @@ data class TutorialStep(
     val instructionsEn: List<String>,
     val tipGe: String,
     val tipEn: String,
-    val tag: String
+    val tag: String,
+    @DrawableRes val imageRes: Int? = null,
+    val actionRoute: String? = null
 )
 
 object TutorialData {
@@ -35,7 +40,9 @@ object TutorialData {
             ),
             tipGe = "რჩევა: შეგიძლიათ პირდაპირ ამ აპლიკაციიდან დააჭიროთ 'დაყენებას' და ფონი მომენტალურად დაყენდება!",
             tipEn = "Tip: You can also tap 'Apply' in this app to set the wallpaper instantly!",
-            tag = "One UI 6.1"
+            tag = "One UI 6.1",
+            imageRes = R.drawable.img_tut_lockscreen,
+            actionRoute = "apply"
         ),
         TutorialStep(
             id = 2,
@@ -57,7 +64,9 @@ object TutorialData {
             ),
             tipGe = "რჩევა: S24 Ultra-ზე ხელმისაწვდომია ადაპტური ფერები, რომლებიც ავტომატურად იღებენ ტონებს ფონიდან.",
             tipEn = "Tip: S24 Ultra includes adaptive colors that automatically match your wallpaper.",
-            tag = "Clock Styling"
+            tag = "Clock Styling",
+            imageRes = R.drawable.img_tut_lockscreen,
+            actionRoute = "studio"
         ),
         TutorialStep(
             id = 3,
@@ -79,7 +88,9 @@ object TutorialData {
             ),
             tipGe = "რჩევა: ბატარეის ვიჯეტი ერთდროულად აჩვენებს S24 Ultra-ს, Galaxy Watch-ის და Galaxy Buds-ის მუხტს!",
             tipEn = "Tip: The battery widget displays your phone, Galaxy Watch, and Galaxy Buds battery levels together!",
-            tag = "Widgets"
+            tag = "Widgets",
+            imageRes = R.drawable.img_tut_widgets,
+            actionRoute = "studio"
         ),
         TutorialStep(
             id = 4,
@@ -101,7 +112,9 @@ object TutorialData {
             ),
             tipGe = "S24 Ultra-ს 1Hz ეკრანი ენერგოეფექტურად ინარჩუნებს ფონს AOD-ზე მინიმალური ბატარეის ხარჯვით!",
             tipEn = "S24 Ultra's 1Hz refresh rate keeps the wallpaper visible with almost zero battery drain!",
-            tag = "AOD Feature"
+            tag = "AOD Feature",
+            imageRes = R.drawable.img_tut_palette,
+            actionRoute = "aod_preview"
         ),
         TutorialStep(
             id = 5,
@@ -125,7 +138,9 @@ object TutorialData {
             ),
             tipGe = "ეს მოგცემთ ზუსტად იმ მინიმალისტურ, დახვეწილ დიზაინს, რაც iThemeDesign-ის ვიდეოებშია!",
             tipEn = "This gives you the exact minimalist, unified look seen in iThemeDesign showcases!",
-            tag = "Aesthetic Icons"
+            tag = "Aesthetic Icons",
+            imageRes = R.drawable.img_tut_palette,
+            actionRoute = "gallery"
         )
     )
 }

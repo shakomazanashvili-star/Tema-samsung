@@ -8,6 +8,7 @@ import com.example.ai.WallpaperTagGenerator
 import com.example.data.AppDatabase
 import com.example.data.FavoriteRepository
 import com.example.data.FavoriteThemeEntity
+import com.example.data.FavoriteWallpaperSetEntity
 import com.example.model.LockScreenConfig
 import com.example.model.ThemeItem
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,11 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
     val favoriteIds: StateFlow<Set<String>>
     val allCategories: StateFlow<List<String>>
 
+    // Favorite Wallpaper Sets (Quick Access)
+    val favoriteWallpaperSets: StateFlow<List<FavoriteWallpaperSetEntity>>
+    val quickAccessWallpaperSets: StateFlow<List<FavoriteWallpaperSetEntity>>
+    val favoriteWallpaperIds: StateFlow<Set<String>>
+
     private val _selectedCategory = MutableStateFlow<String?>(null)
     val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
 
@@ -40,7 +46,10 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
 
     init {
         val database = AppDatabase.getDatabase(application)
-        repository = FavoriteRepository(database.favoriteThemeDao())
+        repository = FavoriteRepository(
+            dao = database.favoriteThemeDao(),
+            wallpaperSetDao = database.favoriteWallpaperSetDao()
+        )
 
         favorites = repository.allFavorites
             .stateIn(
@@ -75,6 +84,29 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+        // Wallpaper Sets Flows
+        favoriteWallpaperSets = repository.allWallpaperSets
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+        quickAccessWallpaperSets = repository.quickAccessWallpaperSets
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+        favoriteWallpaperIds = repository.allWallpaperSets
+            .map { list -> list.map { it.id }.toSet() }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptySet()
+            )
     }
 
     fun setCategoryFilter(category: String?) {
@@ -98,6 +130,27 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    /**
+     * Dedicated UI toggle to allow users to save their favorite wallpaper sets for quick access.
+     */
+    fun toggleFavoriteWallpaperSet(theme: ThemeItem) {
+        viewModelScope.launch {
+            repository.toggleWallpaperSetFavorite(theme)
+        }
+    }
+
+    fun toggleQuickAccess(id: String, enabled: Boolean) {
+        viewModelScope.launch {
+            repository.toggleQuickAccess(id, enabled)
+        }
+    }
+
+    fun removeWallpaperSet(id: String) {
+        viewModelScope.launch {
+            repository.removeWallpaperSet(id)
+        }
+    }
+
     fun generateAiTags(
         theme: ThemeItem,
         config: LockScreenConfig,
@@ -111,7 +164,6 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
 
             result.onSuccess { generated ->
                 _aiStatusMessage.value = "Generated category: ${generated.primaryCategory}"
-                // Save or update in Room database
                 repository.saveFavorite(
                     theme = theme,
                     config = config,

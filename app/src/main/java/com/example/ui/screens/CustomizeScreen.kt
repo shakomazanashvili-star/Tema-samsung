@@ -24,6 +24,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FormatColorFill
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -82,6 +84,8 @@ fun CustomizeScreen(
     theme: ThemeItem,
     config: LockScreenConfig,
     language: AppLanguage,
+    isFavorite: Boolean = false,
+    onToggleFavorite: (() -> Unit)? = null,
     onUpdateConfig: (LockScreenConfig) -> Unit,
     onApplyTheme: () -> Unit,
     onBack: () -> Unit,
@@ -134,26 +138,41 @@ fun CustomizeScreen(
                 }
             }
 
-            Button(
-                onClick = onApplyTheme,
-                modifier = Modifier.testTag("apply_from_customizer_button"),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AestheticAccent,
-                    contentColor = Color.Black
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Wallpaper,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (language == AppLanguage.GEORGIAN) "დაყენება" else "Apply",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onToggleFavorite != null) {
+                    IconButton(
+                        onClick = onToggleFavorite,
+                        modifier = Modifier.testTag("customizer_quick_access_toggle")
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Quick Access",
+                            tint = if (isFavorite) AestheticAccent else S24TextSecondary
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = onApplyTheme,
+                    modifier = Modifier.testTag("apply_from_customizer_button"),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AestheticAccent,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Wallpaper,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (language == AppLanguage.GEORGIAN) "დაყენება" else "Apply",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 
